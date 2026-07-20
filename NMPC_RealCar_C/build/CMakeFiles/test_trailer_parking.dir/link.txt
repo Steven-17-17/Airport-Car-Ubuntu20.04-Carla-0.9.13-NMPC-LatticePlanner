@@ -1,1 +1,0 @@
-/usr/bin/cc    CMakeFiles/test_trailer_parking.dir/test_trailer_parking.c.o  -o test_trailer_parking  -lm 
