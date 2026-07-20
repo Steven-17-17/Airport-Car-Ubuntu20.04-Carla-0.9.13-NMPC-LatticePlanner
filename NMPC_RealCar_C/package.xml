@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>nmpc_realcar_c</name>
+  <name>nmpc_realcar_cpp</name>
   <version>0.1.0</version>
-  <description>C controller core and ROS1 wrapper for CARLA trailer parking</description>
+  <description>C++ controller core and ROS1 wrapper for CARLA trailer parking</description>
 
   <maintainer email="steven@example.com">steven</maintainer>
   <license>MIT</license>

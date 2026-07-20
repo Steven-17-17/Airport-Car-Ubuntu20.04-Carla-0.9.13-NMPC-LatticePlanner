@@ -71,7 +71,7 @@ roscore
 
 启动后确认地图和自定义车辆蓝图已经包含在当前 CARLA 包里。这个工程依赖你的自建地图和自定义车辆，不建议换成官方原版 CARLA 后直接运行。
 
-### 2.3 准备 ROS bridge 工作空间（注意！！！steven是作者个人电脑名字）
+### 2.3 准备 ROS bridge 工作空间（注意！！！“steven“是作者个人电脑名字）
 
 工作空间推荐结构：
 
@@ -118,10 +118,10 @@ x,y
 独立检查 CSV 是否能读取：
 
 ```bash
-cd /home/steven/catkin_ws/src/NMPC_RealCar_C
-cmake -S . -B /tmp/nmpc_realcar_c_build
-cmake --build /tmp/nmpc_realcar_c_build -j
-/tmp/nmpc_realcar_c_build/test_trailer_parking user_waypoints.csv
+cd /home/steven/catkin_ws
+source /opt/ros/noetic/setup.bash
+source devel/setup.bash
+roslaunch nmpc_realcar_cpp trailer_parking.launch
 ```
 
 ## 3. 启动方式

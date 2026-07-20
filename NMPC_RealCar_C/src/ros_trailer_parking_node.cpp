@@ -15,7 +15,7 @@
 
 #include <carla_msgs/CarlaEgoVehicleControl.h>
 
-#include "nmpc_realcar_c/test_trailer_parking.h"
+#include "nmpc_realcar_cpp/test_trailer_parking.h"
 
 class RosTrailerParkingNode {
 public:

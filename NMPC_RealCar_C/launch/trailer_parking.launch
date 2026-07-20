@@ -3,7 +3,7 @@
   <arg name="port" default="2000" />
   <arg name="timeout" default="10" />
   <arg name="town" default="map_dxf/Maps/dxf_map/dxf_map" />
-  <arg name="csv_path" default="$(find nmpc_realcar_c)/user_waypoints.csv" />
+  <arg name="csv_path" default="$(find nmpc_realcar_cpp)/user_waypoints.csv" />
   <arg name="wheelbase" default="2.8" />
   <arg name="dt" default="0.05" />
   <arg name="rate_hz" default="20.0" />
@@ -20,9 +20,9 @@
     <arg name="town" value="$(arg town)" />
   </include>
 
-  <node pkg="nmpc_realcar_c" type="launch_original_scene.py" name="launch_original_scene" output="screen" args="$(arg csv_path)" />
+  <node pkg="nmpc_realcar_cpp" type="launch_original_scene.py" name="launch_original_scene" output="screen" args="$(arg csv_path)" />
 
-  <node pkg="nmpc_realcar_c" type="ros_trailer_parking_node" name="ros_trailer_parking_node" output="screen">
+  <node pkg="nmpc_realcar_cpp" type="ros_trailer_parking_node" name="ros_trailer_parking_node" output="screen">
     <param name="csv_path" value="$(arg csv_path)" />
     <param name="wheelbase" value="$(arg wheelbase)" />
     <param name="dt" value="$(arg dt)" />
