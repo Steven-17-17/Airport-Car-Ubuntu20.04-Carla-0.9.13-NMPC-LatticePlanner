@@ -118,10 +118,10 @@ x,y
 独立检查 CSV 是否能读取：
 
 ```bash
-cd /home/steven/catkin_ws/src/NMPC_RealCar_C
-cmake -S . -B /tmp/nmpc_realcar_c_build
-cmake --build /tmp/nmpc_realcar_c_build -j
-/tmp/nmpc_realcar_c_build/test_trailer_parking user_waypoints.csv
+cd /home/steven/catkin_ws
+source /opt/ros/noetic/setup.bash
+source devel/setup.bash
+roslaunch nmpc_realcar_cpp trailer_parking.launch
 ```
 
 ## 3. 启动方式
