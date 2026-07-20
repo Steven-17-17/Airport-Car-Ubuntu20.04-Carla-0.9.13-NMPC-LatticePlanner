@@ -118,10 +118,10 @@ x,y
 独立检查 CSV 是否能读取：
 
 ```bash
-cd /home/steven/catkin_ws
-source /opt/ros/noetic/setup.bash
-source devel/setup.bash
-roslaunch nmpc_realcar_cpp trailer_parking.launch
+cd /home/steven/catkin_ws/src/NMPC_RealCar_C
+cmake -S . -B /tmp/nmpc_realcar_c_build
+cmake --build /tmp/nmpc_realcar_c_build -j
+/tmp/nmpc_realcar_c_build/test_trailer_parking user_waypoints.csv
 ```
 
 ## 3. 启动方式
@@ -151,7 +151,7 @@ roscore
 cd /home/steven/catkin_ws
 source /opt/ros/noetic/setup.bash
 source devel/setup.bash
-roslaunch nmpc_realcar_c trailer_parking.launch
+roslaunch nmpc_realcar_cpp trailer_parking.launch
 ```
 
 这个 launch 会做几件事：
