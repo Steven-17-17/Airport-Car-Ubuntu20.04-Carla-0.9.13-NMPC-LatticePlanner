@@ -1,10 +1,46 @@
-# NMPC_RealCar_C
+# NMPC_RealCar_CPP
 
-这是一个用于 **CARLA 0.9.13-dirty + ROS1 Noetic** 的四节全挂车路径跟踪与顺序停靠控制工程。
+这是一个用于 **CARLA 0.9.13-dirty + ROS1 Noetic** 的四节全挂车路径跟踪与顺序停靠控制工程。控制核心已经迁移为 C++，ROS 包名为：
 
-工程会根据 `user_waypoints.csv` 生成参考路径，在 CARLA 中生成牵引车和 4 节挂车，通过 ROS topic 发布车辆/挂车状态，并由 C/C++ 控制节点发布 CARLA 控制命令。
+```bash
+nmpc_realcar_cpp
+```
 
-## 1. 环境要求
+工程会读取 `user_waypoints.csv` 作为参考路径，在 CARLA 中生成牵引车和 4 节挂车，并通过 C++ 控制节点发布车辆控制命令。
+
+## 1. GitHub 需要包含什么
+
+建议上传这些源码和配置文件：
+
+```text
+NMPC_RealCar_C/
+  CMakeLists.txt
+  package.xml
+  README.md
+  user_waypoints.csv
+  test_trailer_parking.cpp
+  nmpc_controller.py
+  test_trailer_parking.py
+  launch_original_scene.py
+  include/nmpc_realcar_cpp/test_trailer_parking.h
+  src/ros_trailer_parking_node.cpp
+  launch/trailer_parking.launch
+```
+
+不建议上传这些生成文件：
+
+```text
+build/
+devel/
+install/
+__pycache__/
+*.pyc
+test_trailer_parking
+```
+
+注意：这个工程依赖你的 **CARLA 0.9.13-dirty 自建版本**。如果自建地图和自定义车辆蓝图体积很大，通常不要直接放进这个 ROS 包里；建议在 README 中说明 CARLA 包的获取方式，或者单独用 Release/网盘/内部仓库管理。
+
+## 2. 环境要求
 
 推荐系统：
 
@@ -14,7 +50,7 @@
 - CARLA `0.9.13-dirty`
 - 已包含自建地图和自定义车辆蓝图的 CARLA 包
 
-需要的 ROS 包：
+需要的 ROS 依赖：
 
 - `roscpp`
 - `rospy`
@@ -28,9 +64,9 @@
 
 - `catkin`
 - `cmake`
-- `gcc/g++`
+- `g++`
 
-本工程默认使用的 CARLA 地图参数为：
+默认 CARLA 地图：
 
 ```bash
 map_dxf/Maps/dxf_map/dxf_map
@@ -46,68 +82,56 @@ vehicle.qinghua.trailer3
 vehicle.qinghua.trailer4
 ```
 
-如果新电脑上的 CARLA 包没有这些地图或车辆蓝图，场景脚本无法按当前配置生成原始车辆队列。
+如果新电脑上的 CARLA 包没有这些地图或车辆蓝图，`launch_original_scene.py` 无法生成当前场景。
 
-## 2. 第一次在新电脑运行
+## 3. 第一次在新电脑运行
 
-### 2.1 安装 ROS Noetic
+### 3.1 准备工作空间
 
-确认 ROS 可用：
-
-```bash
-source /opt/ros/noetic/setup.bash
-roscore
-```
-
-如果能正常启动 `roscore`，说明 ROS 基础环境可用。
-
-### 2.2 准备 CARLA 0.9.13-dirty
-
-进入 CARLA 根目录，确认可以启动：
-
-```bash
-./CarlaUE4.sh
-```
-
-启动后确认地图和自定义车辆蓝图已经包含在当前 CARLA 包里。这个工程依赖你的自建地图和自定义车辆，不建议换成官方原版 CARLA 后直接运行。
-
-### 2.3 准备 ROS bridge 工作空间（注意！！！“steven“是作者个人电脑名字）
-
-工作空间推荐结构：
+推荐工作空间结构如下。`steven` 只是作者电脑用户名，新电脑请换成自己的用户名路径。
 
 ```text
-/home/steven/catkin_ws
+~/catkin_ws
   └── src
       ├── NMPC_RealCar_C
       └── ros-bridge
 ```
 
-如果是新电脑，先把 `carla_ros_bridge` 放到 `catkin_ws/src/` 下，并确保 `carla_msgs` 能被 catkin 找到。
+其中：
 
-然后编译：
+- `NMPC_RealCar_C`：本工程目录，虽然目录名保留了 C，但 ROS 包名已经是 `nmpc_realcar_cpp`
+- `ros-bridge`：CARLA ROS bridge 源码
+
+### 3.2 编译
 
 ```bash
-cd /home/steven/catkin_ws
+cd ~/catkin_ws
 source /opt/ros/noetic/setup.bash
 catkin_make --cmake-args -DBUILD_ROS1=ON
 source devel/setup.bash
 ```
 
-编译成功后，控制节点会生成在：
+确认包名可被 ROS 找到：
 
 ```bash
-/home/steven/catkin_ws/devel/lib/nmpc_realcar_c/ros_trailer_parking_node
+rospack find nmpc_realcar_cpp
 ```
 
-### 2.4 检查 CSV 路径
-
-参考路径文件为：
+编译成功后，控制节点位于：
 
 ```bash
-/home/steven/catkin_ws/src/NMPC_RealCar_C/user_waypoints.csv
+~/catkin_ws/devel/lib/nmpc_realcar_cpp/ros_trailer_parking_node
 ```
 
-CSV 至少需要包含 `x,y` 两列，例如：
+### 3.3 检查 CSV
+
+参考路径文件：
+
+```bash
+~/catkin_ws/src/NMPC_RealCar_C/user_waypoints.csv
+```
+
+CSV 至少需要包含 `x,y` 两列：
 
 ```csv
 x,y
@@ -115,16 +139,16 @@ x,y
 107.068772,-363.176888
 ```
 
-独立检查 CSV 是否能读取：
+独立检查路径读取和 C++ 控制核心初始化：
 
 ```bash
-cd /home/steven/catkin_ws/src/NMPC_RealCar_C
-cmake -S . -B /tmp/nmpc_realcar_c_build
-cmake --build /tmp/nmpc_realcar_c_build -j
-/tmp/nmpc_realcar_c_build/test_trailer_parking user_waypoints.csv
+cd ~/catkin_ws/src/NMPC_RealCar_C
+cmake -S . -B /tmp/nmpc_realcar_cpp_build
+cmake --build /tmp/nmpc_realcar_cpp_build -j
+/tmp/nmpc_realcar_cpp_build/test_trailer_parking user_waypoints.csv
 ```
 
-## 3. 启动方式
+## 4. 启动方式
 
 推荐使用 3 个终端。
 
@@ -136,7 +160,7 @@ cmake --build /tmp/nmpc_realcar_c_build -j
 ./CarlaUE4.sh
 ```
 
-等待 CARLA 完全启动并进入地图。
+等待 CARLA 完全启动。
 
 ### 终端 2：启动 ROS master
 
@@ -148,45 +172,55 @@ roscore
 ### 终端 3：启动本工程
 
 ```bash
-cd /home/steven/catkin_ws
+cd ~/catkin_ws
 source /opt/ros/noetic/setup.bash
 source devel/setup.bash
 roslaunch nmpc_realcar_cpp trailer_parking.launch
 ```
 
-这个 launch 会做几件事：
+如果要指定 CSV：
 
-- 启动 `carla_ros_bridge`
-- 加载/连接 CARLA 地图
-- 运行 `launch_original_scene.py`
+```bash
+roslaunch nmpc_realcar_cpp trailer_parking.launch \
+  csv_path:=$HOME/catkin_ws/src/NMPC_RealCar_C/user_waypoints.csv
+```
+
+如果想强制控制节点等到挂车状态后才发布控制：
+
+```bash
+roslaunch nmpc_realcar_cpp trailer_parking.launch require_trailers:=true
+```
+
+## 5. `launch_original_scene.py` 是做什么的
+
+`launch_original_scene.py` **不是** 用来启动 CARLA 本体的。CARLA 仍然需要先手动运行：
+
+```bash
+./CarlaUE4.sh
+```
+
+这个脚本只在 CARLA 已经启动后工作，作用是：
+
+- 连接 CARLA server
 - 清理旧车辆
-- 按 `user_waypoints.csv` 起点生成牵引车和 4 节挂车
-- 发布牵引车 odometry 和挂车状态
-- 启动 `ros_trailer_parking_node`
-- 发布 `/carla/ego_vehicle/vehicle_control_cmd` 控制车辆
+- 根据 `user_waypoints.csv` 起点和航向生成牵引车
+- 在牵引车后方生成 4 节挂车
+- 发布 `/carla/ego_vehicle/odometry`
+- 发布 `/trailers/poses`
+- 发布 `/trailers/states`
 
-如果需要手动指定 CSV：
+所以它是 CARLA 仿真场景适配脚本。上实际车辆时，一般不再使用这个脚本。
 
-```bash
-roslaunch nmpc_realcar_c trailer_parking.launch \
-  csv_path:=/home/steven/catkin_ws/src/NMPC_RealCar_C/user_waypoints.csv
+## 6. 控制逻辑说明
+
+C++ 控制核心：
+
+```text
+test_trailer_parking.cpp
+include/nmpc_realcar_cpp/test_trailer_parking.h
 ```
 
-如果想强制等到挂车状态后才发布控制：
-
-```bash
-roslaunch nmpc_realcar_c trailer_parking.launch require_trailers:=true
-```
-
-## 4. 控制逻辑说明
-
-C 控制核心位于：
-
-```bash
-src/NMPC_RealCar_C/test_trailer_parking.c
-```
-
-它按 Python 版 `test_trailer_parking.py` / `nmpc_controller.py` 的主要逻辑迁移：
+主要逻辑：
 
 - 读取 `user_waypoints.csv`
 - 平滑并重采样参考路径
@@ -199,11 +233,11 @@ src/NMPC_RealCar_C/test_trailer_parking.c
 - 目标挂车进入停车区后停车
 - 收到 `/nmpc/release` 后切换到下一节挂车
 
-当前 C 版没有直接调用 SciPy/SLSQP，而是使用无外部依赖的约束坐标搜索近似求解 NMPC 序列优化。
+当前 C++ 版没有直接调用 SciPy/SLSQP，而是使用无外部依赖的约束坐标搜索近似求解 NMPC 序列优化。
 
-## 5. 常用 Topic
+## 7. 常用 Topic
 
-### 5.1 输入/状态 Topic
+### 7.1 输入/状态 Topic
 
 牵引车里程计：
 
@@ -211,25 +245,11 @@ src/NMPC_RealCar_C/test_trailer_parking.c
 rostopic echo /carla/ego_vehicle/odometry
 ```
 
-说明：
-
-- `pose.pose.position.x/y/z`：牵引车位置
-- `pose.pose.orientation`：牵引车四元数姿态
-- `twist.twist.linear.x/y/z`：牵引车线速度
-- `twist.twist.angular.x/y/z`：牵引车角速度
-
 四节挂车位姿：
 
 ```bash
 rostopic echo /trailers/poses
 ```
-
-说明：
-
-- `poses[0]`：第 1 节挂车
-- `poses[1]`：第 2 节挂车
-- `poses[2]`：第 3 节挂车
-- `poses[3]`：第 4 节挂车
 
 四节挂车更直观的状态数组：
 
@@ -237,19 +257,10 @@ rostopic echo /trailers/poses
 rostopic echo /trailers/states
 ```
 
-数据格式按 6 个数一组重复：
+`/trailers/states` 数据格式按 6 个数一组重复：
 
 ```text
 [编号, x, y, z, yaw_rad, yaw_deg]
-```
-
-例如：
-
-```text
-[1, x1, y1, z1, yaw1_rad, yaw1_deg,
- 2, x2, y2, z2, yaw2_rad, yaw2_deg,
- 3, x3, y3, z3, yaw3_rad, yaw3_deg,
- 4, x4, y4, z4, yaw4_rad, yaw4_deg]
 ```
 
 停车后放行下一节挂车：
@@ -258,7 +269,7 @@ rostopic echo /trailers/states
 rostopic pub /nmpc/release std_msgs/Bool "data: true" -1
 ```
 
-### 5.2 控制输出 Topic
+### 7.2 控制输出 Topic
 
 发给 CARLA 的控制命令：
 
@@ -266,7 +277,7 @@ rostopic pub /nmpc/release std_msgs/Bool "data: true" -1
 rostopic echo /carla/ego_vehicle/vehicle_control_cmd
 ```
 
-字段说明：
+字段：
 
 - `throttle`：油门，范围 0 到 1
 - `brake`：刹车，范围 0 到 1
@@ -278,13 +289,11 @@ rostopic echo /carla/ego_vehicle/vehicle_control_cmd
 rostopic echo /nmpc/tractor_speed
 ```
 
-前轮转角：
+前轮转角，单位 rad：
 
 ```bash
 rostopic echo /nmpc/front_steer_angle
 ```
-
-单位为 rad。
 
 控制节点内部挂车状态：
 
@@ -298,13 +307,11 @@ rostopic echo /nmpc/trailers/states
 [编号, x, y, yaw_rad, yaw_deg]
 ```
 
-控制决策耗时：
+控制决策耗时，单位 ms：
 
 ```bash
 rostopic echo /nmpc/decision_time_ms
 ```
-
-单位为 ms。
 
 控制调试数组：
 
@@ -327,15 +334,89 @@ rostopic echo /nmpc/control_debug
  nmpc_cost]
 ```
 
-## 6. 常用检查命令
+## 8. 上实际车辆需要改什么
 
-查看当前 topic：
+建议保留 C++ 控制核心：
+
+```text
+test_trailer_parking.cpp
+include/nmpc_realcar_cpp/test_trailer_parking.h
+```
+
+需要替换的是仿真接口层。当前 CARLA 链路是：
+
+```text
+launch_original_scene.py / carla_ros_bridge
+  -> /carla/ego_vehicle/odometry
+  -> /trailers/poses
+  -> ros_trailer_parking_node
+  -> /carla/ego_vehicle/vehicle_control_cmd
+```
+
+上实车时应改成：
+
+```text
+实车定位/传感器/挂车测量
+  -> 车辆状态
+  -> 挂车状态
+  -> C++ 控制节点
+  -> 实车底盘控制接口
+```
+
+需要对接的输入：
+
+- 牵引车位置 `x, y`
+- 牵引车航向角 `yaw`
+- 牵引车速度 `v`
+- 4 节挂车位置 `x, y`
+- 4 节挂车航向角 `yaw`
+- 放行/继续信号，对应当前 `/nmpc/release`
+
+需要对接的输出：
+
+- 驱动或目标速度命令
+- 制动命令
+- 转向命令
+
+如果实车底盘不是 CARLA 的油门/刹车/归一化转向接口，需要修改：
+
+```text
+src/ros_trailer_parking_node.cpp
+```
+
+当前控制核心输出：
+
+```text
+ControlCommand.throttle
+ControlCommand.brake
+ControlCommand.steer
+```
+
+其中 `steer` 是归一化转向，范围 `[-1, 1]`。如果实车需要前轮转角：
+
+```text
+front_steer_rad = steer * max_steer_rad
+```
+
+实车迁移重点检查：
+
+- 坐标系是否统一
+- yaw 正方向是否一致
+- 单位是否统一为 m、m/s、rad
+- 转向符号是否需要取反
+- `max_steer_rad_` 是否符合实车最大前轮转角
+- 控制周期是否保持在期望频率
+- 是否加入急停、通信超时刹车、人工接管、速度限制
+
+## 9. 常用检查命令
+
+查看 topic：
 
 ```bash
 rostopic list
 ```
 
-查看 topic 频率：
+查看频率：
 
 ```bash
 rostopic hz /carla/ego_vehicle/odometry
@@ -347,18 +428,7 @@ rostopic hz /carla/ego_vehicle/vehicle_control_cmd
 
 ```bash
 rosnode list
-```
-
-查看节点订阅和发布：
-
-```bash
 rosnode info /ros_trailer_parking_node
-```
-
-确认车辆是否收到控制：
-
-```bash
-rostopic echo /carla/ego_vehicle/vehicle_control_cmd
 ```
 
 确认决策是否运行：
@@ -367,70 +437,71 @@ rostopic echo /carla/ego_vehicle/vehicle_control_cmd
 rostopic echo /nmpc/decision_time_ms
 ```
 
-## 7. 常见问题
+## 10. 常见问题
+
+### 找不到包 `nmpc_realcar_cpp`
+
+先重新编译并 source：
+
+```bash
+cd ~/catkin_ws
+source /opt/ros/noetic/setup.bash
+catkin_make --cmake-args -DBUILD_ROS1=ON
+source devel/setup.bash
+rospack find nmpc_realcar_cpp
+```
 
 ### 没有 `/carla/ego_vehicle/odometry`
 
-本工程不依赖 `carla_spawn_objects` 的 odometry pseudo sensor，而是由 `launch_original_scene.py` 主动发布 `/carla/ego_vehicle/odometry`。
-
-如果没有消息，优先检查：
+本工程由 `launch_original_scene.py` 主动发布 `/carla/ego_vehicle/odometry`。如果没有消息，检查：
 
 ```bash
 rosnode list
 rostopic list
 ```
 
-并确认 `launch_original_scene.py` 没有因为 CARLA 连接失败或找不到车辆蓝图而退出。
+并确认脚本没有因为 CARLA 连接失败、地图错误或找不到车辆蓝图而退出。
 
 ### 有 odometry，但是没有控制输出
 
 检查控制节点是否启动：
 
 ```bash
-rosnode list
 rosnode info /ros_trailer_parking_node
-```
-
-检查控制输出：
-
-```bash
 rostopic echo /carla/ego_vehicle/vehicle_control_cmd
 ```
 
-如果启动时设置了 `require_trailers:=true`，还需要确认：
+如果启动时设置了 `require_trailers:=true`，还要确认：
 
 ```bash
 rostopic echo /trailers/poses
 ```
 
-### 车辆生成失败
+### VS Code 里 ROS 头文件标红
 
-常见原因：
-
-- CARLA 版本不是当前自建的 `0.9.13-dirty`
-- 自建地图没有加载
-- 自定义车辆蓝图不存在
-- 起点附近碰撞导致 spawn 失败
-
-优先检查 launch 终端里的错误输出。
-
-### 车辆能动但方向不对
-
-检查：
+如果 `catkin_make` 能通过，但 VS Code 标红，一般是 IntelliSense 没有 ROS include 路径。建议从已 source 的终端启动 VS Code：
 
 ```bash
-rostopic echo /carla/ego_vehicle/odometry
-rostopic echo /nmpc/control_debug
+cd ~/catkin_ws
+source /opt/ros/noetic/setup.bash
+source devel/setup.bash
+code .
 ```
 
-重点看车辆 yaw、`steer_norm` 和 `steer_rad` 是否符合预期。
+或者在 `.vscode/c_cpp_properties.json` 中加入：
 
-## 8. 文件说明
+```text
+/opt/ros/noetic/include
+~/catkin_ws/devel/include
+~/catkin_ws/src/NMPC_RealCar_C/include
+```
 
-- `test_trailer_parking.c`：C 控制核心，包含路径处理、NMPC 近似求解、停车状态机。
-- `include/nmpc_realcar_c/test_trailer_parking.h`：C 控制核心头文件。
-- `src/ros_trailer_parking_node.cpp`：ROS1 控制节点，订阅状态并发布 CARLA 控制命令。
-- `launch_original_scene.py`：连接 CARLA，生成牵引车/挂车，发布 odometry 和挂车状态。
+## 11. 文件说明
+
+- `test_trailer_parking.cpp`：C++ 控制核心，包含路径处理、NMPC 近似求解、停车状态机。
+- `include/nmpc_realcar_cpp/test_trailer_parking.h`：C++ 控制核心头文件。
+- `src/ros_trailer_parking_node.cpp`：ROS1 控制节点，订阅状态并发布控制命令。
+- `launch_original_scene.py`：CARLA 场景适配脚本，生成牵引车/挂车并发布仿真状态。
 - `launch/trailer_parking.launch`：一键启动 launch。
 - `user_waypoints.csv`：用户参考路径。
 - `nmpc_controller.py`：原 Python NMPC 控制器参考实现。
