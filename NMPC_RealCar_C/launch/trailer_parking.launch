@@ -1,0 +1,36 @@
+<launch>
+  <arg name="host" default="localhost" />
+  <arg name="port" default="2000" />
+  <arg name="timeout" default="10" />
+  <arg name="town" default="map_dxf/Maps/dxf_map/dxf_map" />
+  <arg name="csv_path" default="$(find nmpc_realcar_cpp)/user_waypoints.csv" />
+  <arg name="wheelbase" default="2.8" />
+  <arg name="dt" default="0.05" />
+  <arg name="rate_hz" default="20.0" />
+  <arg name="require_trailers" default="false" />
+  <arg name="vehicle_odom_topic" default="/carla/ego_vehicle/odometry" />
+  <arg name="trailers_topic" default="/trailers/poses" />
+  <arg name="release_topic" default="/nmpc/release" />
+  <arg name="control_topic" default="/carla/ego_vehicle/vehicle_control_cmd" />
+
+  <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
+    <arg name="host" value="$(arg host)" />
+    <arg name="port" value="$(arg port)" />
+    <arg name="timeout" value="$(arg timeout)" />
+    <arg name="town" value="$(arg town)" />
+  </include>
+
+  <node pkg="nmpc_realcar_cpp" type="launch_original_scene.py" name="launch_original_scene" output="screen" args="$(arg csv_path)" />
+
+  <node pkg="nmpc_realcar_cpp" type="ros_trailer_parking_node" name="ros_trailer_parking_node" output="screen">
+    <param name="csv_path" value="$(arg csv_path)" />
+    <param name="wheelbase" value="$(arg wheelbase)" />
+    <param name="dt" value="$(arg dt)" />
+    <param name="rate_hz" value="$(arg rate_hz)" />
+    <param name="require_trailers" value="$(arg require_trailers)" />
+    <param name="vehicle_odom_topic" value="$(arg vehicle_odom_topic)" />
+    <param name="trailers_topic" value="$(arg trailers_topic)" />
+    <param name="release_topic" value="$(arg release_topic)" />
+    <param name="control_topic" value="$(arg control_topic)" />
+  </node>
+</launch>
